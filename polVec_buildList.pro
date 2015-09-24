@@ -229,6 +229,7 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
     ENDCASE
   ENDWHILE
 ENDIF ELSE PRINT, 'Could not query image file'
-WDELETE, [0, 1]
+WDELETE, 1
+WDELETE, 0
 
 END
