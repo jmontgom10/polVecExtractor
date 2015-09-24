@@ -93,6 +93,25 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
           WINDOW_ID = 1, $
           XSIZE=410, XPOS = 300, YPOS = 200
         ;
+        ;Overplot the previously traced vectors
+        vecsOnSubArr = WHERE(((xVec1 GT lf) OR (xVec2 GT lf)) AND $
+                             ((xVec1 LT rt) OR (xVec2 LT rt)) AND $
+                             ((yVec1 GT bt) OR (yVec2 GT bt)) AND $
+                             ((yVec1 LT tp) OR (yVec2 LT tp)), numOnSubArr)
+        IF numOnSubArr GT 0 THEN BEGIN
+          FOR iVec = 0 , numOnSubArr - 1 DO BEGIN
+            thisVec = vecsOnSubArr[iVec]
+            thisX1  = (xVec1[thisVec] - lf)*10E
+            thisX2  = (xVec2[thisVec] - lf)*10E
+            thisY1  = (yVec1[thisVec] - bt)*10E
+            thisY2  = (yVec2[thisVec] - bt)*10E
+            PLOTS, [thisX1, thisX2], $
+              [thisY1, thisY2], $
+              THICK = 6, COLOR = '00ff00'x
+          ENDFOR
+        ENDIF
+        ;
+        ;Get the user to trace the new vector
         PRINT, 'Click on the line segment end points'
         CURSOR, x1, y1, /DATA, /DOWN
         OPLOT, [x1], [y1], PSYM = 4, COLOR = '0000ff'x, THICK = 2
