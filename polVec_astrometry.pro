@@ -18,7 +18,8 @@ IF STRLEN(imgFile) GT 0 THEN BEGIN
                        (imageSize NE imageInfo.dimensions[1]), numThree) + 1
   ;
   ;Get ready to show the image
-  SHOW_IMAGE, img, imageInfo.dimensions, YSIZE = 700, GRID_SPACING = 100, WINDOW_ID = 0
+  grid_spacing = FLOOR(imageinfo.dimensions[0]/20)
+  SHOW_IMAGE, img, imageInfo.dimensions, YSIZE = 700, GRID_SPACING = grid_spacing, WINDOW_ID = 0
   ;
   ;Query about the epoch (B1950 or J2000)
   epoch = ''

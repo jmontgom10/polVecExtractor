@@ -200,6 +200,13 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
         polY = MEAN([[yVec1], [yVec2]], DIMENSION = 2)
         XY2AD, polX, polY, astr, polRA, polDec
         ;
+        ;Sort values by RA
+        sortInds = SORT(polRA)
+        xVec1 = xVec1[sortInds]
+        xVec2 = xVec2[sortInds]
+        yVec1 = yVec1[sortInds]
+        yVec2 = yVec2[sortInds]
+        ;
         ;Compute polarization length and position angle (accounting for image rotation)
         polLen = SQRT((xVec1 - xVec2)^2E + (yVec1 - yVec2)^2E)
         deltaY = yVec1 - yVec2
@@ -222,5 +229,6 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
     ENDCASE
   ENDWHILE
 ENDIF ELSE PRINT, 'Could not query image file'
+WDELETE, [0, 1]
 
 END
