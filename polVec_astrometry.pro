@@ -128,6 +128,9 @@ IF STRLEN(imgFile) GT 0 THEN BEGIN
     STARAST, RAclicks, DECclicks, Xclicks, Yclicks, CDmat
   ENDELSE
   ;
+  ;Recombine the zoomed image into a grayscale image
+  IF (numThree NE 0) THEN img2 = SQRT(TOTAL(img^2E, interleaving[0]))
+  ;
   ;Create a preliminary header with astrometry...
 ;  crpix = [Xclicks[0]+1, Yclicks[0]+1]
   crpix = [Xclicks[0], Yclicks[0]]
@@ -135,9 +138,6 @@ IF STRLEN(imgFile) GT 0 THEN BEGIN
   MKHDR, header, img2
   MAKE_ASTR, astr, CD = CDmat, CRPIX = crpix, CRVAL = crval
   PUTAST, header, astr
-  ;
-  ;Recombine the zoomed image into a grayscale image
-  IF (numThree NE 0) THEN img2 = SQRT(TOTAL(img^2E, interleaving[0]))
   fitsFile = imgPath + PATH_SEP() + FILE_BASENAME(imgFile, extension) + 'astro.fits'
   WRITEFITS, fitsFile, img2, header
 
