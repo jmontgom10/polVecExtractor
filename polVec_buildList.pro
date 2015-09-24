@@ -206,12 +206,14 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
         xVec2 = xVec2[sortInds]
         yVec1 = yVec1[sortInds]
         yVec2 = yVec2[sortInds]
+        polX  = polX[sortInds]
+        polY  = polY[sortInds]
         ;
         ;Compute polarization length and position angle (accounting for image rotation)
         polLen = SQRT((xVec1 - xVec2)^2E + (yVec1 - yVec2)^2E)
         deltaY = yVec1 - yVec2
         deltaX = xVec1 - xVec2
-        polPA  = ((ATAN(deltaY, deltaX)*!RADEG - 90D + 360D) MOD 180D) - imgRot
+        polPA  = ((ATAN(deltaY, deltaX)*!RADEG - 90D + 360D - imgRot) MOD 180D)
         ;
         ;Write the results to file
         datFile = imgPath + PATH_SEP() + FILE_BASENAME(imgFile, extension) + 'pols.dat'
@@ -229,7 +231,12 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
     ENDCASE
   ENDWHILE
 ENDIF ELSE PRINT, 'Could not query image file'
-WDELETE, 1
-WDELETE, 0
+;
+;Close all open windows
+DEVICE, WINDOW_STATE = openWindows
+openWindows = WHERE(openWindows, numOpen)
+IF numOpen GT 0 THEN $
+  FOR iWin = 0, numOpen - 1 DO $
+  WDELETE, openWindows[iWin]
 
 END
