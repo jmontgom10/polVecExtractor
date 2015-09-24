@@ -71,25 +71,27 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
         CURSOR, xClick, yClick, /DATA, /DOWN
         ;
         ;Cut out the subarray
-        lf = ROUND(xClick - 20) > 0
-        rt = (lf + 40) < (imageDims[0] - 1)
-        bt = ROUND(yClick - 20) > 0
-        tp = (bt + 40) < (imageDims[1] - 1)
+        subSize = ROUND(20E/(SQRT(ABS(cdelt[0]*cdelt[1]))*3600E))
+        lf = ROUND(xClick - subSize) > 0
+        rt = (lf + 2*subSize) < (imageDims[0] - 1)
+        bt = ROUND(yClick - subSize) > 0
+        tp = (bt + 2*subSize) < (imageDims[1] - 1)
         PLOTS, [lf,lf,rt,rt,lf], [bt,tp,tp,bt,bt], COLOR = '00ff00'x
         ;
         ;Make sure the subarray is correct
         IF (numThree NE 0) THEN BEGIN
           CASE interleaving OF
-            1: subarray = REBIN(img[*, lf:rt, bt:tp], imageSize[interleaving[0]-1], 410, 410)
-            2: subarray = REBIN(img[lf:rt, *, bt:tp], imageSize[interleaving[0]-1], 410, 410)
-            3: subarray = REBIN(img[lf:rt, bt:tp, *], imageSize[interleaving[0]-1], 410, 410)
-          ENDCASE  
+            1: subarray = CONGRID(img[*, lf:rt, bt:tp], imageSize[interleaving[0]-1], 410, 410, CUBIC = -0.5)
+            2: subarray = CONGRID(img[lf:rt, *, bt:tp], imageSize[interleaving[0]-1], 410, 410, CUBIC = -0.5)
+            3: subarray = CONGRID(img[lf:rt, bt:tp, *], imageSize[interleaving[0]-1], 410, 410, CUBIC = -0.5)
+          ENDCASE
         ENDIF ELSE BEGIN
-          subarray = REBIN(img1[lf:rt, bt:tp], 410, 410)
+          subarray = CONGRID(img[lf:rt, bt:tp], 410, 410, CUBIC = -0.5)
         ENDELSE
         ;
         ;Plot the subarray image
-        SHOW_IMAGE, subarray, [410, 410], $
+        zoomFactor = 410E/(2*subSize + 1)
+        SHOW_IMAGE, subarray, (2*[subSize, subSize] + 1), $
           WINDOW_ID = 1, $
           XSIZE=410, XPOS = 300, YPOS = 200
         ;
@@ -103,10 +105,10 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
         IF numOnSubArr GT 0 THEN BEGIN
           FOR iVec = 0 , numOnSubArr - 1 DO BEGIN
             thisVec = vecsOnSubArr[iVec]
-            thisX1  = (xVec1[thisVec] - lf)*10E
-            thisX2  = (xVec2[thisVec] - lf)*10E
-            thisY1  = (yVec1[thisVec] - bt)*10E
-            thisY2  = (yVec2[thisVec] - bt)*10E
+            thisX1  = (xVec1[thisVec] - lf)
+            thisX2  = (xVec2[thisVec] - lf)
+            thisY1  = (yVec1[thisVec] - bt)
+            thisY2  = (yVec2[thisVec] - bt)
             PLOTS, [thisX1, thisX2], $
               [thisY1, thisY2], $
               THICK = 6, COLOR = '00ff00'x
@@ -123,10 +125,10 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
         ;
         ;Adjust plate-scale, shift zero-point,
         ;and concatenate the vector to the list
-        xVec1 = [xVec1, (x1/10E + lf)]
-        xVec2 = [xVec2, (x2/10E + lf)]
-        yVec1 = [yVec1, (y1/10E + bt)]
-        yVec2 = [yVec2, (y2/10E + bt)]
+        xVec1 = [xVec1, (x1 + lf)]
+        xVec2 = [xVec2, (x2 + lf)]
+        yVec1 = [yVec1, (y1 + bt)]
+        yVec2 = [yVec2, (y2 + bt)]
         ;
         ;Reset the primary plotting window
         SHOW_IMAGE, img, imageInfo.dimensions, YSIZE = 700, WINDOW_ID = 0
@@ -194,37 +196,41 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
         ENDFOR
       END
       'X': BEGIN
-        ;
-        ;Compute the polarization locations
-        polX = MEAN([[xVec1], [xVec2]], DIMENSION = 2)
-        polY = MEAN([[yVec1], [yVec2]], DIMENSION = 2)
-        XY2AD, polX, polY, astr, polRA, polDec
-        ;
-        ;Sort values by RA
-        sortInds = SORT(polRA)
-        xVec1 = xVec1[sortInds]
-        xVec2 = xVec2[sortInds]
-        yVec1 = yVec1[sortInds]
-        yVec2 = yVec2[sortInds]
-        polX  = polX[sortInds]
-        polY  = polY[sortInds]
-        ;
-        ;Compute polarization length and position angle (accounting for image rotation)
-        polLen = SQRT((xVec1 - xVec2)^2E + (yVec1 - yVec2)^2E)
-        deltaY = yVec1 - yVec2
-        deltaX = xVec1 - xVec2
-        polPA  = ((ATAN(deltaY, deltaX)*!RADEG - 90D + 360D - imgRot) MOD 180D)
-        ;
-        ;Write the results to file
-        datFile = imgPath + PATH_SEP() + FILE_BASENAME(imgFile, extension) + 'pols.dat'
-        OPENW, lun, datFile, /GET_LUN
-        numPols = N_ELEMENTS(polX)
-        PRINTF, lun, ';   RA              DEC             polLen          PA'
-        FOR i = 0, numPols - 1 DO BEGIN
-          PRINTF, lun, ' ' + STRING(polRA[i], polDec[i], polLen[i], polPA[i], $
-                              FORMAT = '(4(F16.10))')
-        ENDFOR
-        FREE_LUN, lun      
+        IF N_ELEMENTS(xVec1) GT 0 THEN BEGIN
+          ;
+          ;Compute the polarization locations
+          polX = MEAN([[xVec1], [xVec2]], DIMENSION = 2)
+          polY = MEAN([[yVec1], [yVec2]], DIMENSION = 2)
+          XY2AD, polX, polY, astr, polRA, polDec
+          ;
+          ;Sort values by RA
+          sortInds = SORT(polRA)
+          xVec1  = xVec1[sortInds]
+          xVec2  = xVec2[sortInds]
+          yVec1  = yVec1[sortInds]
+          yVec2  = yVec2[sortInds]
+          polX   = polX[sortInds]
+          polY   = polY[sortInds]
+          polRA  = polRA[sortInds]
+          polDec = polDec[sortInds]
+          ;
+          ;Compute polarization length and position angle (accounting for image rotation)
+          polLen = SQRT((xVec1 - xVec2)^2E + (yVec1 - yVec2)^2E)
+          deltaY = yVec1 - yVec2
+          deltaX = xVec1 - xVec2
+          polPA  = ((ATAN(deltaY, deltaX)*!RADEG - 90D + 360D - imgRot) MOD 180D)
+          ;
+          ;Write the results to file
+          datFile = imgPath + PATH_SEP() + FILE_BASENAME(imgFile, extension) + 'pols.dat'
+          OPENW, lun, datFile, /GET_LUN
+          numPols = N_ELEMENTS(polX)
+          PRINTF, lun, ';   RA              DEC             polLen          PA'
+          FOR i = 0, numPols - 1 DO BEGIN
+            PRINTF, lun, ' ' + STRING(polRA[i], polDec[i], polLen[i], polPA[i], $
+              FORMAT = '(4(F16.10))')
+          ENDFOR
+          FREE_LUN, lun
+        ENDIF
         done = 1
       END
       ELSE: PRINT, 'Please enter one of the specified characters.'
