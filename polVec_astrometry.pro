@@ -18,7 +18,7 @@ IF STRLEN(imgFile) GT 0 THEN BEGIN
                        (imageSize NE imageInfo.dimensions[1]), numThree) + 1
   ;
   ;Get ready to show the image
-  SHOW_IMAGE, img, imageInfo.dimensions, YSIZE = 700, WINDOW_ID = 0
+  SHOW_IMAGE, img, imageInfo.dimensions, YSIZE = 700, GRID_SPACING = 100, WINDOW_ID = 0
   ;
   ;Query about the epoch (B1950 or J2000)
   epoch = ''
@@ -131,16 +131,29 @@ IF STRLEN(imgFile) GT 0 THEN BEGIN
   ;Recombine the zoomed image into a grayscale image
   IF (numThree NE 0) THEN img2 = SQRT(TOTAL(img^2E, interleaving[0]))
   ;
-  ;Create a preliminary header with astrometry...
-;  crpix = [Xclicks[0]+1, Yclicks[0]+1]
-  crpix = [Xclicks[0], Yclicks[0]]
-  crval = [RAclicks[0], DECclicks[0]]
-  MKHDR, header, img2
-  MAKE_ASTR, astr, CD = CDmat, CRPIX = crpix, CRVAL = crval
+  ;Find the reference point closest to the center of the image
+  crpix   = FLOOR(imageInfo.dimensions/2)
+  crDist  = SQRT((Xclicks - crpix[0])^2E + (Yclicks - crpix[1])^2E)
+  minDist = MIN(crDist, minDistInd)
+  ;
+  ;Create a preliminary astrometry structure...
+  crpix1  = [Xclicks[minDistInd]+1, Yclicks[minDistInd]+1]
+  crval   = [RAclicks[minDistInd], DECclicks[minDistInd]]
+  MAKE_ASTR, astr, CD = CDmat, CRPIX = crpix1, CRVAL = crval
+  ;
+  ;Shift CRPIX to be the center of the image
+  XY2AD, crpix[0], crpix[1], astr, crval0, crval1
+  crval = [crval0, crval1]
+  MAKE_ASTR, astr, CD = CDmat, CRPIX = (crpix + 1), CRVAL = crval
+  ;
+  ;Create a header for the output image and place the astrometry structure in it
+  MKHDR, header, img2  
   PUTAST, header, astr
+  ;
+  ;Write the output image and astrometry header to disk
   fitsFile = imgPath + PATH_SEP() + FILE_BASENAME(imgFile, extension) + 'astro.fits'
   WRITEFITS, fitsFile, img2, header
-
+  ;
 ENDIF ELSE PRINT, 'Could not query image file'
 WDELETE, 0
 

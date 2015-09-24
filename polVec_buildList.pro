@@ -94,10 +94,12 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
           XSIZE=410, XPOS = 300, YPOS = 200
         ;
         ;Overplot the previously traced vectors
-        vecsOnSubArr = WHERE(((xVec1 GT lf) OR (xVec2 GT lf)) AND $
-                             ((xVec1 LT rt) OR (xVec2 LT rt)) AND $
-                             ((yVec1 GT bt) OR (yVec2 GT bt)) AND $
-                             ((yVec1 LT tp) OR (yVec2 LT tp)), numOnSubArr)
+        IF N_ELEMENTS(xVec1) GT 0 THEN BEGIN
+          vecsOnSubArr = WHERE(((xVec1 GT lf) OR (xVec2 GT lf)) AND $
+                               ((xVec1 LT rt) OR (xVec2 LT rt)) AND $
+                               ((yVec1 GT bt) OR (yVec2 GT bt)) AND $
+                               ((yVec1 LT tp) OR (yVec2 LT tp)), numOnSubArr)
+        ENDIF ELSE numOnSubArr = 0
         IF numOnSubArr GT 0 THEN BEGIN
           FOR iVec = 0 , numOnSubArr - 1 DO BEGIN
             thisVec = vecsOnSubArr[iVec]

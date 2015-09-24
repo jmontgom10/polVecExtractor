@@ -1,5 +1,5 @@
 ;************ FUNCTIONS ************
-PRO SHOW_IMAGE, img, imageDims, $
+PRO SHOW_IMAGE, img, imageDims, GRID_SPACING = grid_spacing, $
   WINDOW_ID = window_id, $
   XSIZE = xsize, YSIZE = ysize, $
   XPOS = xpos, YPOS = ypos
@@ -25,12 +25,12 @@ PRO SHOW_IMAGE, img, imageDims, $
   ;Separate each color element of the image
   IF (numThree NE 0) THEN BEGIN
     img1 = FLTARR(3,xsize, ysize)
-    img1[0,*,*] = CONGRID(REFORM(img[0,*,*]), xsize, ysize)
-    img1[1,*,*] = CONGRID(REFORM(img[1,*,*]), xsize, ysize)
-    img1[2,*,*] = CONGRID(REFORM(img[2,*,*]), xsize, ysize)
+    img1[0,*,*] = CONGRID(REFORM(img[0,*,*]), xsize, ysize, CUBIC = -0.5)
+    img1[1,*,*] = CONGRID(REFORM(img[1,*,*]), xsize, ysize, CUBIC = -0.5)
+    img1[2,*,*] = CONGRID(REFORM(img[2,*,*]), xsize, ysize, CUBIC = -0.5)
   ENDIF ELSE BEGIN
     ;If no interleaving was found, then simply do a congrid resizing
-    img1 = CONGRID(img, xsize, ysize)
+    img1 = CONGRID(img, xsize, ysize, CUBIC = -0.5)
   ENDELSE
   ;
   ;Open a window and display the data to the user
@@ -45,6 +45,18 @@ PRO SHOW_IMAGE, img, imageDims, $
   IF (numThree NE 0) $
     THEN TV, img1, TRUE = interleaving[0] $
   ELSE TV, img1
+  ;
+  ;If the gridspacing variable was set, then show some gridlines.
+  IF N_ELEMENTS(grid_spacing) NE 0 THEN BEGIN
+    numXLines = FLOOR(imageDims[0]/grid_spacing)
+    numYlines = FLOOR(imageDims[1]/grid_spacing)
+    xStart    = FLOOR((imageDims[0] - numXLines*grid_spacing)/2E)
+    yStart    = FLOOR((imageDims[1] - numYLines*grid_spacing)/2E)
+    FOR iX = 0, numXlines DO $
+      PLOTS, xStart + [iX*grid_spacing, iX*grid_spacing], [0, imageDims[1]], /DATA, COLOR = '0000ff'x, LINESTYLE = 2
+    FOR iY = 0, numYlines DO $
+      PLOTS, [0, imageDims[0]], yStart + [iY*grid_spacing, iY*grid_spacing], /DATA, COLOR = '0000ff'x, LINESTYLE = 2
+  ENDIF
   ;
   ;Show the created window
   WSHOW, window_id
