@@ -20,7 +20,9 @@ IF (STRLEN(imgFile) GT 0) AND fitsTest THEN BEGIN
   img       = READ_IMAGE(imgFile, R, G, B)
   imageDims   = imageInfo.dimensions
   imageSize   = SIZE(img, /DIMENSIONS)
-  ;
+  interleaving = WHERE((imageSize NE imageInfo.dimensions[0]) AND $
+                       (imageSize NE imageInfo.dimensions[1]), numThree) + 1
+;
   ;Read in the astrometry header from the previously saved .fits file
   header    = HEADFITS(fitsFile)
   EXTAST, header, astr
