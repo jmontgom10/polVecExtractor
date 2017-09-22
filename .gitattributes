@@ -1,0 +1,2 @@
+# Force Github to identify the .pro files as IDL files
+*.pro linguist-language=IDL
